@@ -93,6 +93,7 @@ process.on('uncaughtException', (err) => {
 async function ensureSchema() {
   // Garantir coluna numero_pasta em alunos e preencher valores padrão
   await pool.query(`ALTER TABLE public.alunos ADD COLUMN IF NOT EXISTS numero_pasta TEXT;`);
+  await pool.query(`ALTER TABLE public.alunos ADD COLUMN IF NOT EXISTS data_nascimento DATE;`);
   await pool.query(`UPDATE public.alunos SET numero_pasta = RIGHT(matricula, 4)
                     WHERE numero_pasta IS NULL AND matricula IS NOT NULL;`);
   await pool.query(`ALTER TABLE public.alunos ADD COLUMN IF NOT EXISTS e_bolsista BOOLEAN DEFAULT false;`);
