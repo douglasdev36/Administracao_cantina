@@ -42,6 +42,8 @@ type LibHistItem = {
 
 type LiberacoesHistoryResponse = { liberacoes: LibHistItem[] };
 type BuscarAlunoResponse = { aluno?: { id: string; nome: string; matricula: string; numero_pasta?: string; turma_nome?: string; e_bolsista?: boolean } };
+type LancheRecenteResponse = { found: boolean; last?: { id: string; data_liberacao: string } | null };
+type CardapioAtivoResponse = { cardapio?: { id: string; nome: string; tipo_refeicao?: string } | null };
 
 export default function LiberacaoLanche() {
   const [matricula, setMatricula] = useState("");
@@ -110,73 +112,18 @@ export default function LiberacaoLanche() {
 
       if (error) {
         console.error('Erro ao buscar aluno:', error);
-      } else {
-        const aluno = (data as BuscarAlunoResponse)?.aluno;
-        if (aluno) {
-          return {
-            id: aluno.id as string,
-            nome: aluno.nome as string,
-            matricula: aluno.matricula as string,
-            numero_pasta: aluno.numero_pasta ?? undefined,
-            turma_nome: aluno.turma_nome ?? 'Sem turma',
-            e_bolsista: aluno.e_bolsista ?? false
-          } as Aluno;
-        }
-      }
-
-      if (normalized.length === 12) {
-        const { data: alunoRow, error: alunoError } = await api
-          .from('alunos')
-          .select('id, nome, matricula, numero_pasta, e_bolsista, turmas(nome)')
-          .eq('matricula', normalized)
-          .limit(1)
-          .maybeSingle();
-
-        if (alunoError) {
-          console.error('Erro ao buscar aluno por tabela:', alunoError);
-          return null;
-        }
-        if (!alunoRow) return null;
-        const turmaNome = (alunoRow as any)?.turmas?.nome ?? 'Sem turma';
-        return {
-          id: (alunoRow as any).id as string,
-          nome: (alunoRow as any).nome as string,
-          matricula: (alunoRow as any).matricula as string,
-          numero_pasta: (alunoRow as any).numero_pasta ?? undefined,
-          turma_nome: turmaNome,
-          e_bolsista: Boolean((alunoRow as any).e_bolsista),
-        } as Aluno;
-      }
-
-      const candidates = Array.from(
-        new Set(
-          [
-            normalized,
-            normalized.padStart(4, '0'),
-            normalized.replace(/^0+/, ''),
-          ].filter((v) => v && v.length > 0 && v.length <= 4)
-        )
-      );
-      const { data: alunoRow, error: alunoError } = await api
-        .from('alunos')
-        .select('id, nome, matricula, numero_pasta, e_bolsista, turmas(nome)')
-        .in('numero_pasta', candidates)
-        .limit(1)
-        .maybeSingle();
-
-      if (alunoError) {
-        console.error('Erro ao buscar aluno por tabela:', alunoError);
         return null;
       }
-      if (!alunoRow) return null;
-      const turmaNome = (alunoRow as any)?.turmas?.nome ?? 'Sem turma';
+
+      const aluno = (data as BuscarAlunoResponse)?.aluno;
+      if (!aluno) return null;
       return {
-        id: (alunoRow as any).id as string,
-        nome: (alunoRow as any).nome as string,
-        matricula: (alunoRow as any).matricula as string,
-        numero_pasta: (alunoRow as any).numero_pasta ?? undefined,
-        turma_nome: turmaNome,
-        e_bolsista: Boolean((alunoRow as any).e_bolsista),
+        id: aluno.id as string,
+        nome: aluno.nome as string,
+        matricula: aluno.matricula as string,
+        numero_pasta: aluno.numero_pasta ?? undefined,
+        turma_nome: aluno.turma_nome ?? 'Sem turma',
+        e_bolsista: aluno.e_bolsista ?? false
       } as Aluno;
     } catch (error) {
       console.error('Erro ao buscar aluno:', error);
@@ -206,13 +153,8 @@ export default function LiberacaoLanche() {
       }
       
       // Verificar se cardápio ativo é almoço e se aluno não é bolsista
-      const { data: cardapioAtivo } = await api
-        .from('cardapios')
-        .select('id, nome, tipo_refeicao')
-        .eq('ativo', true)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data: cardData } = await api.functions.invoke('cardapio_ativo');
+      const cardapioAtivo = (cardData as CardapioAtivoResponse)?.cardapio ?? null;
       
       if (cardapioAtivo?.tipo_refeicao === 'almoco' && !aluno.e_bolsista) {
         setAlunoEncontrado(aluno);
@@ -235,22 +177,14 @@ export default function LiberacaoLanche() {
 
   const verificarLancheRecente = async (alunoId: string): Promise<boolean> => {
     try {
-      const umaHoraAtras = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-      
-      const { data, error } = await api
-        .from('liberacoes_lanche')
-        .select('id, data_liberacao')
-        .eq('aluno_id', alunoId)
-        .gte('data_liberacao', umaHoraAtras)
-        .order('data_liberacao', { ascending: false })
-        .limit(1);
-
+      const { data, error } = await api.functions.invoke('lanche_recente', {
+        body: { aluno_id: alunoId, minutes: 60 }
+      });
       if (error) {
         console.error('Erro ao verificar lanche recente:', error);
         return false;
       }
-
-      return data && data.length > 0;
+      return Boolean((data as LancheRecenteResponse)?.found);
     } catch (error) {
       console.error('Erro ao verificar lanche recente:', error);
       return false;
@@ -270,13 +204,8 @@ export default function LiberacaoLanche() {
       }
 
       // Buscar cardápio ativo
-      const { data: cardapioAtivo } = await api
-        .from('cardapios')
-        .select('nome, tipo_refeicao')
-        .eq('ativo', true)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data: cardData } = await api.functions.invoke('cardapio_ativo');
+      const cardapioAtivo = (cardData as CardapioAtivoResponse)?.cardapio ?? null;
 
       const { data: { user } } = await api.auth.getUser();
       

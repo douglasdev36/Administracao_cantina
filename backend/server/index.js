@@ -94,9 +94,20 @@ async function ensureSchema() {
   // Garantir coluna numero_pasta em alunos e preencher valores padrão
   await pool.query(`ALTER TABLE public.alunos ADD COLUMN IF NOT EXISTS numero_pasta TEXT;`);
   await pool.query(`ALTER TABLE public.alunos ADD COLUMN IF NOT EXISTS data_nascimento DATE;`);
+  await pool.query(`ALTER TABLE public.alunos ADD COLUMN IF NOT EXISTS email TEXT;`);
+  await pool.query(`ALTER TABLE public.alunos ADD COLUMN IF NOT EXISTS telefone TEXT;`);
+  await pool.query(`ALTER TABLE public.alunos ADD COLUMN IF NOT EXISTS observacao TEXT;`);
+  await pool.query(`ALTER TABLE public.alunos ADD COLUMN IF NOT EXISTS turma_id UUID;`);
+  await pool.query(`ALTER TABLE public.alunos ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ativo';`);
+  await pool.query(`ALTER TABLE public.alunos ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now();`);
+  await pool.query(`ALTER TABLE public.alunos ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();`);
   await pool.query(`UPDATE public.alunos SET numero_pasta = RIGHT(matricula, 4)
                     WHERE numero_pasta IS NULL AND matricula IS NOT NULL;`);
+  await pool.query(`UPDATE public.alunos SET status = 'ativo' WHERE status IS NULL;`);
+  await pool.query(`UPDATE public.alunos SET created_at = now() WHERE created_at IS NULL;`);
+  await pool.query(`UPDATE public.alunos SET updated_at = now() WHERE updated_at IS NULL;`);
   await pool.query(`ALTER TABLE public.alunos ADD COLUMN IF NOT EXISTS e_bolsista BOOLEAN DEFAULT false;`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_alunos_numero_pasta ON public.alunos (numero_pasta);`);
   // Garantir colunas de compatibilidade em cardapios e liberacoes_lanche
   await pool.query(`ALTER TABLE public.cardapios ADD COLUMN IF NOT EXISTS tipo_refeicao TEXT CHECK (tipo_refeicao IN ('lanche','almoco')) DEFAULT 'lanche';`);
   await pool.query(`ALTER TABLE public.cardapios ADD COLUMN IF NOT EXISTS data_inicio DATE;`);
@@ -105,9 +116,11 @@ async function ensureSchema() {
   await pool.query(`UPDATE public.cardapios SET data_fim = COALESCE(data_fim, CURRENT_DATE) WHERE data_fim IS NULL;`);
   await pool.query(`ALTER TABLE public.cardapios ALTER COLUMN data_inicio SET NOT NULL;`);
   await pool.query(`ALTER TABLE public.cardapios ALTER COLUMN data_fim SET NOT NULL;`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_cardapios_ativo_true ON public.cardapios (updated_at DESC) WHERE ativo = true;`);
   await pool.query(`ALTER TABLE public.liberacoes_lanche ADD COLUMN IF NOT EXISTS turma_nome TEXT;`);
   await pool.query(`ALTER TABLE public.liberacoes_lanche ADD COLUMN IF NOT EXISTS cardapio_nome TEXT;`);
   await pool.query(`ALTER TABLE public.liberacoes_lanche ADD COLUMN IF NOT EXISTS tipo_refeicao TEXT CHECK (tipo_refeicao IN ('lanche','almoco')) DEFAULT 'lanche';`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_liberacoes_lanche_aluno_data ON public.liberacoes_lanche (aluno_id, data_liberacao DESC);`);
   await pool.query(`ALTER TABLE public.users ADD COLUMN IF NOT EXISTS password_hash TEXT;`);
   await pool.query(`ALTER TABLE public.produtos ADD COLUMN IF NOT EXISTS data_validade DATE;`);
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS one_active_cardapio ON public.cardapios ((1)) WHERE ativo = true;`);
@@ -196,7 +209,8 @@ function hasPermission(role, method, table, payload = {}) {
   if (role === 'admin_normal') {
     if (table === 'users') return false;
     if (table === 'user_roles') return false;
-    if (table === 'alunos' || table === 'turmas') return method !== 'DELETE';
+    if (table === 'alunos') return method !== 'DELETE';
+    if (table === 'turmas') return true;
     if (table === 'cardapios') return true;
     if (table === 'produtos' || table === 'categorias_produtos' || table === 'unidades_medida') return true;
     if (table === 'liberacoes_lanche') return method === 'GET' || method === 'POST';
@@ -506,6 +520,15 @@ app.delete('/api/:table/:id', async (req, res) => {
   if (!ensureTableAllowed(table, res)) return;
   if (!hasPermission(req.user?.role, 'DELETE', table)) return deny(res);
   try {
+    if (table === 'turmas') {
+      const { rows } = await pool.query(
+        `SELECT 1 FROM public.alunos WHERE turma_id = $1 LIMIT 1`,
+        [id]
+      );
+      if (rows.length > 0) {
+        return res.status(400).json({ error: 'Não é possível excluir: existem alunos vinculados a esta turma' });
+      }
+    }
     if (table === 'users') {
       await pool.query(`UPDATE public.liberacoes_lanche SET usuario_id = NULL WHERE usuario_id = $1`, [id]);
       await pool.query(`UPDATE public.movimentacoes_estoque SET usuario_id = NULL WHERE usuario_id = $1`, [id]);
@@ -664,6 +687,50 @@ app.post('/functions/buscar_aluno', async (req, res) => {
   } catch (e) {
     console.error('functions buscar_aluno error', e);
     res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
+app.post('/functions/lanche_recente', async (req, res) => {
+  const { aluno_id, minutes = 60 } = req.body || {};
+  if (!aluno_id) return res.status(400).json({ error: 'aluno_id ausente' });
+  const mins = Number(minutes);
+  if (!Number.isFinite(mins) || mins <= 0) return res.status(400).json({ error: 'minutes inválido' });
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, data_liberacao
+       FROM public.liberacoes_lanche
+       WHERE aluno_id = $1
+         AND data_liberacao >= NOW() - ($2::text || ' minutes')::interval
+       ORDER BY data_liberacao DESC
+       LIMIT 1`,
+      [aluno_id, String(Math.floor(mins))]
+    );
+    const last = rows[0];
+    if (!last) return res.json({ found: false, last: null });
+    return res.json({ found: true, last: { id: String(last.id), data_liberacao: last.data_liberacao } });
+  } catch (e) {
+    console.error('functions lanche_recente error', e);
+    const out = pgToHttpError('lanche_recente', e);
+    return res.status(out.status).json({ error: out.error });
+  }
+});
+
+app.post('/functions/cardapio_ativo', async (_req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, nome, tipo_refeicao
+       FROM public.cardapios
+       WHERE ativo = true
+       ORDER BY updated_at DESC
+       LIMIT 1`
+    );
+    const row = rows[0];
+    if (!row) return res.json({ cardapio: null });
+    return res.json({ cardapio: { id: String(row.id), nome: row.nome, tipo_refeicao: row.tipo_refeicao || 'lanche' } });
+  } catch (e) {
+    console.error('functions cardapio_ativo error', e);
+    const out = pgToHttpError('cardapio_ativo', e);
+    return res.status(out.status).json({ error: out.error });
   }
 });
 

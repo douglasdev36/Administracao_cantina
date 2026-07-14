@@ -250,6 +250,37 @@ const Alunos = () => {
     }
   };
 
+  const handleDeleteTurma = async (id: string, nome: string) => {
+    if (!confirm(`Tem certeza que deseja excluir a turma "${nome}"?`)) return;
+    setLoading(true);
+    try {
+      const { error } = await api
+        .from('turmas')
+        .eq('id', id)
+        .delete();
+
+      if (error) throw error;
+
+      if (filtroTurma === nome) setFiltroTurma("Todas");
+      if (formData.turma_id === id) setFormData({ ...formData, turma_id: '' });
+
+      toast({
+        title: "Sucesso",
+        description: "Turma excluída com sucesso",
+      });
+      fetchTurmas();
+    } catch (error: unknown) {
+      console.error('Erro ao excluir turma:', error);
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao excluir turma",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredAlunos = alunos.filter(aluno => {
     const matchesSearch = aluno.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
       aluno.matricula.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -302,7 +333,8 @@ const Alunos = () => {
                   Adicione uma nova turma ao sistema
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleCreateTurma} className="space-y-4">
+              <div className="space-y-4">
+                <form onSubmit={handleCreateTurma} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="nova-turma">Nome da Turma</Label>
                   <Input
@@ -316,7 +348,33 @@ const Alunos = () => {
                 <Button type="submit" className="w-full">
                   Criar Turma
                 </Button>
-              </form>
+                </form>
+
+                <div className="space-y-2">
+                  <Label>Turmas cadastradas</Label>
+                  <ScrollArea className="h-48 rounded-md border">
+                    <div className="p-2 space-y-1">
+                      {turmas.length === 0 ? (
+                        <div className="text-sm text-muted-foreground p-2">Nenhuma turma cadastrada</div>
+                      ) : (
+                        turmas.map((turma) => (
+                          <div key={turma.id} className="flex items-center justify-between gap-2 p-2 rounded-md hover:bg-muted">
+                            <div className="text-sm">{turma.nome}</div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteTurma(turma.id, turma.nome)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </ScrollArea>
+                </div>
+              </div>
             </DialogContent>
           </Dialog>
 
