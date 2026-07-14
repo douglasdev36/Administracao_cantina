@@ -8,7 +8,7 @@ import jwt from 'jsonwebtoken';
 
 dotenv.config();
 const app = express();
-const PORT = process.env.LOCAL_AUTH_PORT || 4000;
+const PORT = process.env.PORT || process.env.LOCAL_AUTH_PORT || 4000;
 const JWT_SECRET = process.env.LOCAL_JWT_SECRET || 'dev_secret_change_me';
 
 function normalizeDate(input) {
@@ -33,6 +33,7 @@ function normalizeDate(input) {
 }
 
 // Read DB env (fallbacks to VITE_* to reuse existing .env.local)
+const DATABASE_URL = process.env.DATABASE_URL;
 const DB = {
   host: process.env.POSTGRES_HOST || process.env.LOCAL_DB_HOST || process.env.VITE_LOCAL_DB_HOST || 'localhost',
   port: parseInt(process.env.POSTGRES_PORT || process.env.LOCAL_DB_PORT || process.env.VITE_LOCAL_DB_PORT || '5432', 10),
@@ -41,7 +42,22 @@ const DB = {
   password: process.env.POSTGRES_PASSWORD || process.env.LOCAL_DB_PASSWORD || process.env.VITE_LOCAL_DB_PASSWORD || 'cantina_password',
 };
 
-const pool = new Pool(DB);
+const sslEnabled =
+  String(process.env.POSTGRES_SSL || '').toLowerCase() === 'true' ||
+  (DATABASE_URL ? DATABASE_URL.includes('sslmode=require') : false) ||
+  String(DB.host || '').includes('neon.tech');
+
+const pool = new Pool(
+  DATABASE_URL
+    ? {
+        connectionString: DATABASE_URL,
+        ssl: sslEnabled ? { rejectUnauthorized: false } : undefined,
+      }
+    : {
+        ...DB,
+        ssl: sslEnabled ? { rejectUnauthorized: false } : undefined,
+      }
+);
 
 app.use(cors({ origin: [/^http:\/\/localhost:\d+$/, /^http:\/\/127\.0\.0\.1:\d+$/, /^http:\/\/\[::1\]:\d+$/], credentials: false }));
 app.use(express.json());
