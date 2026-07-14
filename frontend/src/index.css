@@ -1,0 +1,201 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Cantina Fácil - Design System
+Sistema moderno para administração de cantina escolar
+Paleta: Verde suave, harmônico e minimalista
+*/
+
+@layer base {
+  :root {
+    /* Background System */
+    --background: 151 25% 97%;
+    --foreground: 151 15% 15%;
+    
+    /* Card System */
+    --card: 0 0% 100%;
+    --card-foreground: 151 15% 15%;
+    
+    /* Popover System */
+    --popover: 0 0% 100%;
+    --popover-foreground: 151 15% 15%;
+    
+    /* Primary - Verde principal do sistema */
+    --primary: 151 55% 53%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 151 55% 48%;
+    --primary-muted: 151 30% 90%;
+    
+    /* Secondary - Verde mais suave */
+    --secondary: 151 25% 95%;
+    --secondary-foreground: 151 15% 25%;
+    --secondary-hover: 151 25% 90%;
+    
+    /* Muted - Tons neutros */
+    --muted: 151 10% 96%;
+    --muted-foreground: 151 5% 45%;
+    
+    /* Accent - Verde de destaque */
+    --accent: 151 40% 88%;
+    --accent-foreground: 151 15% 25%;
+    
+    /* Success - Verde de sucesso */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --success-muted: 142 50% 95%;
+    
+    /* Warning - Amarelo suave */
+    --warning: 43 96% 56%;
+    --warning-foreground: 43 15% 15%;
+    --warning-muted: 43 80% 95%;
+    
+    /* Destructive - Vermelho suave */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Border System */
+    --border: 151 20% 88%;
+    --input: 151 20% 88%;
+    --ring: 151 55% 53%;
+
+    --radius: 0.75rem;
+    
+    /* Sidebar System - Verde suave para navegação */
+    --sidebar-background: 151 30% 98%;
+    --sidebar-foreground: 151 15% 25%;
+    --sidebar-primary: 151 55% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 151 25% 95%;
+    --sidebar-accent-foreground: 151 15% 25%;
+    --sidebar-border: 151 20% 88%;
+    --sidebar-ring: 151 55% 53%;
+    
+    /* Custom Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(151 55% 53%), hsl(151 55% 48%));
+    --gradient-success: linear-gradient(135deg, hsl(142 76% 36%), hsl(142 76% 31%));
+    --gradient-soft: linear-gradient(180deg, hsl(151 25% 97%), hsl(151 30% 95%));
+    
+    /* Shadows */
+    --shadow-soft: 0 2px 8px -2px hsl(151 20% 20% / 0.08);
+    --shadow-medium: 0 4px 16px -4px hsl(151 20% 20% / 0.12);
+    --shadow-large: 0 8px 32px -8px hsl(151 20% 20% / 0.16);
+    
+    /* Animation */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dark {
+    --background: 151 20% 7%;
+    --foreground: 151 12% 92%;
+
+    --card: 151 18% 10%;
+    --card-foreground: 151 12% 92%;
+
+    --popover: 151 18% 10%;
+    --popover-foreground: 151 12% 92%;
+
+    --primary: 151 55% 53%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 151 55% 48%;
+    --primary-muted: 151 22% 18%;
+
+    --secondary: 151 16% 14%;
+    --secondary-foreground: 151 12% 92%;
+    --secondary-hover: 151 16% 18%;
+
+    --muted: 151 14% 12%;
+    --muted-foreground: 151 8% 70%;
+
+    --accent: 151 18% 16%;
+    --accent-foreground: 151 12% 92%;
+
+    --success: 142 60% 40%;
+    --success-foreground: 0 0% 100%;
+    --success-muted: 142 30% 16%;
+
+    --warning: 43 90% 55%;
+    --warning-foreground: 43 15% 15%;
+    --warning-muted: 43 40% 16%;
+
+    --destructive: 0 65% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 151 14% 18%;
+    --input: 151 14% 18%;
+    --ring: 151 55% 53%;
+
+    --sidebar-background: 151 18% 9%;
+    --sidebar-foreground: 151 10% 88%;
+    --sidebar-primary: 151 55% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 151 16% 14%;
+    --sidebar-accent-foreground: 151 10% 88%;
+    --sidebar-border: 151 14% 18%;
+    --sidebar-ring: 151 55% 53%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(151 55% 53%), hsl(151 55% 48%));
+    --gradient-success: linear-gradient(135deg, hsl(142 60% 40%), hsl(142 60% 35%));
+    --gradient-soft: linear-gradient(180deg, hsl(151 20% 7%), hsl(151 18% 9%));
+
+    --shadow-soft: 0 2px 8px -2px hsl(151 20% 5% / 0.35);
+    --shadow-medium: 0 4px 16px -4px hsl(151 20% 5% / 0.45);
+    --shadow-large: 0 8px 32px -8px hsl(151 20% 5% / 0.55);
+  }
+
+  .theme-force-light {
+    color-scheme: light;
+    --background: 151 25% 97%;
+    --foreground: 151 15% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 151 15% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 151 15% 15%;
+    --primary: 151 55% 53%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 151 55% 48%;
+    --primary-muted: 151 30% 90%;
+    --secondary: 151 25% 95%;
+    --secondary-foreground: 151 15% 25%;
+    --secondary-hover: 151 25% 90%;
+    --muted: 151 10% 96%;
+    --muted-foreground: 151 5% 45%;
+    --accent: 151 40% 88%;
+    --accent-foreground: 151 15% 25%;
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --success-muted: 142 50% 95%;
+    --warning: 43 96% 56%;
+    --warning-foreground: 43 15% 15%;
+    --warning-muted: 43 80% 95%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 151 20% 88%;
+    --input: 151 20% 88%;
+    --ring: 151 55% 53%;
+    --sidebar-background: 151 30% 98%;
+    --sidebar-foreground: 151 15% 25%;
+    --sidebar-primary: 151 55% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 151 25% 95%;
+    --sidebar-accent-foreground: 151 15% 25%;
+    --sidebar-border: 151 20% 88%;
+    --sidebar-ring: 151 55% 53%;
+    --gradient-primary: linear-gradient(135deg, hsl(151 55% 53%), hsl(151 55% 48%));
+    --gradient-success: linear-gradient(135deg, hsl(142 76% 36%), hsl(142 76% 31%));
+    --gradient-soft: linear-gradient(180deg, hsl(151 25% 97%), hsl(151 30% 95%));
+    --shadow-soft: 0 2px 8px -2px hsl(151 20% 20% / 0.08);
+    --shadow-medium: 0 4px 16px -4px hsl(151 20% 20% / 0.12);
+    --shadow-large: 0 8px 32px -8px hsl(151 20% 20% / 0.16);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
