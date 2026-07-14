@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Package, TrendingUp, TrendingDown, Calendar, Plus, Filter, X, ArrowUp, ArrowDown, FileText, Trash2 } from "lucide-react";
@@ -479,18 +478,21 @@ export default function Almoxarifado() {
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <Select value={filtroCategoria} onValueChange={setFiltroCategoria}>
-              <SelectTrigger className="w-[180px]">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Todas">Todas as Categorias</SelectItem>
+            <div className="relative w-[180px]">
+              <Filter className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <select
+                value={filtroCategoria}
+                onChange={(e) => setFiltroCategoria(e.target.value)}
+                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background pl-9 pr-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="Todas">Todas as Categorias</option>
                 {categorias.map((categoria) => (
-                  <SelectItem key={categoria} value={categoria}>{categoria}</SelectItem>
+                  <option key={categoria} value={categoria}>
+                    {categoria}
+                  </option>
                 ))}
-              </SelectContent>
-            </Select>
+              </select>
+            </div>
             {filtroCategoria !== "Todas" && (
               <Button
                 variant="ghost"
@@ -549,16 +551,19 @@ export default function Almoxarifado() {
                         Nova
                       </Button>
                     </div>
-                    <Select value={novoProduto.categoria} onValueChange={(value) => setNovoProduto({...novoProduto, categoria: value})}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione uma categoria" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categorias.map((cat) => (
-                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <select
+                      id="categoria"
+                      value={novoProduto.categoria}
+                      onChange={(e) => setNovoProduto({ ...novoProduto, categoria: e.target.value })}
+                      className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">Selecione uma categoria</option>
+                      {categorias.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
@@ -595,16 +600,19 @@ export default function Almoxarifado() {
                         Nova
                       </Button>
                     </div>
-                    <Select value={novoProduto.unidade} onValueChange={(value) => setNovoProduto({...novoProduto, unidade: value})}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Unidade" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {unidades.map((unidade) => (
-                          <SelectItem key={unidade} value={unidade}>{unidade}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <select
+                      id="unidade"
+                      value={novoProduto.unidade}
+                      onChange={(e) => setNovoProduto({ ...novoProduto, unidade: e.target.value })}
+                      className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">Unidade</option>
+                      {unidades.map((unidade) => (
+                        <option key={unidade} value={unidade}>
+                          {unidade}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="data_validade">Data de Validade</Label>

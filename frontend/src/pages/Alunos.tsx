@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -400,21 +399,19 @@ const Alunos = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="turma">Turma</Label>
-                    <Select
+                    <select
+                      id="turma"
                       value={formData.turma_id}
-                      onValueChange={(value) => setFormData({...formData, turma_id: value})}
+                      onChange={(e) => setFormData({ ...formData, turma_id: e.target.value })}
+                      className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione uma turma" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {turmas.map((turma) => (
-                          <SelectItem key={turma.id} value={turma.id}>
-                            {turma.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      <option value="">Selecione uma turma</option>
+                      {turmas.map((turma) => (
+                        <option key={turma.id} value={turma.id}>
+                          {turma.nome}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
@@ -441,34 +438,28 @@ const Alunos = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="status">Status</Label>
-                    <Select
+                    <select
+                      id="status"
                       value={formData.status}
-                      onValueChange={(value) => setFormData({...formData, status: value})}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                      className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ativo">Ativo</SelectItem>
-                        <SelectItem value="inativo">Inativo</SelectItem>
-                        <SelectItem value="suspenso">Suspenso</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <option value="ativo">Ativo</option>
+                      <option value="inativo">Inativo</option>
+                      <option value="suspenso">Suspenso</option>
+                    </select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="e_bolsista">É Bolsista?</Label>
-                    <Select
+                    <select
+                      id="e_bolsista"
                       value={formData.e_bolsista ? "sim" : "nao"}
-                      onValueChange={(value) => setFormData({...formData, e_bolsista: value === "sim"})}
+                      onChange={(e) => setFormData({ ...formData, e_bolsista: e.target.value === "sim" })}
+                      className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="sim">Sim</SelectItem>
-                        <SelectItem value="nao">Não</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <option value="nao">Não</option>
+                      <option value="sim">Sim</option>
+                    </select>
                   </div>
                 </div>
 
@@ -508,19 +499,18 @@ const Alunos = () => {
                 className="max-w-sm"
               />
             </div>
-            <Select value={filtroTurma} onValueChange={setFiltroTurma}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Filtrar por turma" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Todas">Todas as Turmas</SelectItem>
-                {turmas.map((turma) => (
-                  <SelectItem key={turma.id} value={turma.nome}>
-                    {turma.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <select
+              value={filtroTurma}
+              onChange={(e) => setFiltroTurma(e.target.value)}
+              className="flex h-10 w-[200px] items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="Todas">Todas as Turmas</option>
+              {turmas.map((turma) => (
+                <option key={turma.id} value={turma.nome}>
+                  {turma.nome}
+                </option>
+              ))}
+            </select>
           </div>
         </CardHeader>
         <CardContent>

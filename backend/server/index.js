@@ -98,6 +98,12 @@ async function ensureSchema() {
   await pool.query(`ALTER TABLE public.alunos ADD COLUMN IF NOT EXISTS e_bolsista BOOLEAN DEFAULT false;`);
   // Garantir colunas de compatibilidade em cardapios e liberacoes_lanche
   await pool.query(`ALTER TABLE public.cardapios ADD COLUMN IF NOT EXISTS tipo_refeicao TEXT CHECK (tipo_refeicao IN ('lanche','almoco')) DEFAULT 'lanche';`);
+  await pool.query(`ALTER TABLE public.cardapios ADD COLUMN IF NOT EXISTS data_inicio DATE;`);
+  await pool.query(`ALTER TABLE public.cardapios ADD COLUMN IF NOT EXISTS data_fim DATE;`);
+  await pool.query(`UPDATE public.cardapios SET data_inicio = COALESCE(data_inicio, CURRENT_DATE) WHERE data_inicio IS NULL;`);
+  await pool.query(`UPDATE public.cardapios SET data_fim = COALESCE(data_fim, CURRENT_DATE) WHERE data_fim IS NULL;`);
+  await pool.query(`ALTER TABLE public.cardapios ALTER COLUMN data_inicio SET NOT NULL;`);
+  await pool.query(`ALTER TABLE public.cardapios ALTER COLUMN data_fim SET NOT NULL;`);
   await pool.query(`ALTER TABLE public.liberacoes_lanche ADD COLUMN IF NOT EXISTS turma_nome TEXT;`);
   await pool.query(`ALTER TABLE public.liberacoes_lanche ADD COLUMN IF NOT EXISTS cardapio_nome TEXT;`);
   await pool.query(`ALTER TABLE public.liberacoes_lanche ADD COLUMN IF NOT EXISTS tipo_refeicao TEXT CHECK (tipo_refeicao IN ('lanche','almoco')) DEFAULT 'lanche';`);

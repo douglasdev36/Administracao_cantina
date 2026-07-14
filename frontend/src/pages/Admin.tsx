@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -277,19 +276,16 @@ const Admin = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="role">Papel *</Label>
-                <Select
+                <select
+                  id="role"
                   value={formData.role}
-                  onValueChange={(value) => setFormData({...formData, role: value})}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="user">Usuário</SelectItem>
-                    <SelectItem value="admin_normal">Administrador</SelectItem>
-                    <SelectItem value="super_admin">Super Admin</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <option value="user">Usuário</option>
+                  <option value="admin_normal">Administrador</option>
+                  <option value="super_admin">Super Admin</option>
+                </select>
                 <p className="text-sm text-muted-foreground">
                   {formData.role === 'user' && "Usuário padrão com acesso básico"}
                   {formData.role === 'admin' && "Pode gerenciar alunos e turmas"}

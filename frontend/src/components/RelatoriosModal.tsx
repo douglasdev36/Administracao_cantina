@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Download, FileText, TrendingUp } from "lucide-react";
@@ -394,20 +393,20 @@ export default function RelatoriosModal({ open, onOpenChange }: RelatoriosModalP
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="tipo">Tipo de Relatório</Label>
-                  <Select value={tipoRelatorio} onValueChange={(value) => setTipoRelatorio(value as TipoRelatorio)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="diario">Diário</SelectItem>
-                      <SelectItem value="semanal">Semanal</SelectItem>
-                      <SelectItem value="mensal">Mensal</SelectItem>
-                      <SelectItem value="trimestral">Trimestral</SelectItem>
-                      <SelectItem value="semestral">Semestral</SelectItem>
-                      <SelectItem value="anual">Anual</SelectItem>
-                      <SelectItem value="personalizado">Período Personalizado</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <select
+                    id="tipo"
+                    value={tipoRelatorio}
+                    onChange={(e) => setTipoRelatorio(e.target.value as TipoRelatorio)}
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="diario">Diário</option>
+                    <option value="semanal">Semanal</option>
+                    <option value="mensal">Mensal</option>
+                    <option value="trimestral">Trimestral</option>
+                    <option value="semestral">Semestral</option>
+                    <option value="anual">Anual</option>
+                    <option value="personalizado">Período Personalizado</option>
+                  </select>
                 </div>
                 
                 {tipoRelatorio === "personalizado" && (

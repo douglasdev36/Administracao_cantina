@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Calendar, ArrowUp, ArrowDown, Package, Download } from "lucide-react";
@@ -271,17 +270,16 @@ export function RelatoriosEstoqueModal({ open, onOpenChange }: RelatoriosEstoque
               <div className="grid gap-4">
                 <div className="grid gap-2">
                   <Label>Período</Label>
-                  <Select value={tipoRelatorio} onValueChange={(value) => setTipoRelatorio(value as TipoRelatorio)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="dia">Hoje</SelectItem>
-                      <SelectItem value="semana">Esta Semana</SelectItem>
-                      <SelectItem value="mes">Este Mês</SelectItem>
-                      <SelectItem value="personalizado">Período Personalizado</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <select
+                    value={tipoRelatorio}
+                    onChange={(e) => setTipoRelatorio(e.target.value as TipoRelatorio)}
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="dia">Hoje</option>
+                    <option value="semana">Esta Semana</option>
+                    <option value="mes">Este Mês</option>
+                    <option value="personalizado">Período Personalizado</option>
+                  </select>
                 </div>
 
                 {tipoRelatorio === "personalizado" && (
