@@ -223,6 +223,48 @@ function deny(res) {
   res.status(403).json({ error: 'Permissão negada' });
 }
 
+function pgToHttpError(table, e) {
+  const code = e?.code;
+  const constraint = e?.constraint ? String(e.constraint) : '';
+  const column = e?.column ? String(e.column) : '';
+  const detail = e?.detail ? String(e.detail) : '';
+  const message = e?.message ? String(e.message) : '';
+
+  if (code === '23505') {
+    if (constraint === 'alunos_matricula_key') return { status: 409, error: 'Matrícula já cadastrada' };
+    if (constraint === 'categorias_produtos_nome_key') return { status: 409, error: 'Categoria já cadastrada' };
+    if (constraint === 'unidades_medida_nome_key') return { status: 409, error: 'Unidade já cadastrada' };
+    if (constraint) return { status: 409, error: `Registro duplicado (${constraint})` };
+    return { status: 409, error: 'Registro duplicado' };
+  }
+
+  if (code === '23503') {
+    if (constraint === 'alunos_turma_id_fkey') return { status: 400, error: 'Turma inválida (não encontrada)' };
+    if (constraint) return { status: 400, error: `Referência inválida (${constraint})` };
+    return { status: 400, error: 'Referência inválida' };
+  }
+
+  if (code === '23514') {
+    if (constraint) return { status: 400, error: `Valor inválido (${constraint})` };
+    return { status: 400, error: 'Valor inválido' };
+  }
+
+  if (code === '22P02') {
+    if (message.includes('uuid')) return { status: 400, error: 'Formato inválido (UUID)' };
+    return { status: 400, error: 'Formato inválido' };
+  }
+
+  if (code === '42703') {
+    const col = column || (message.match(/column "([^"]+)"/i)?.[1] ?? '');
+    if (col) return { status: 500, error: `Schema do banco está desatualizado (coluna ${col} não existe)` };
+    return { status: 500, error: 'Schema do banco está desatualizado (coluna inexistente)' };
+  }
+
+  if (table === 'alunos' && detail) return { status: 400, error: detail };
+
+  return { status: 500, error: 'Erro interno' };
+}
+
 // ------------------------
 // API de dados (CRUD simples)
 // ------------------------
@@ -318,7 +360,8 @@ app.get('/api/:table', async (req, res) => {
     res.json(safe);
   } catch (e) {
     console.error('GET list error', table, e);
-    res.status(500).json({ error: 'Erro interno' });
+    const out = pgToHttpError(table, e);
+    res.status(out.status).json({ error: out.error });
   }
 });
 
@@ -337,7 +380,8 @@ app.get('/api/:table/:id', async (req, res) => {
     res.json(r);
   } catch (e) {
     console.error('GET by id error', table, e);
-    res.status(500).json({ error: 'Erro interno' });
+    const out = pgToHttpError(table, e);
+    res.status(out.status).json({ error: out.error });
   }
 });
 
@@ -397,7 +441,8 @@ app.post('/api/:table', async (req, res) => {
     res.status(201).json(items.length === 1 ? results[0] : results);
   } catch (e) {
     console.error('POST error', table, e);
-    res.status(500).json({ error: 'Erro interno' });
+    const out = pgToHttpError(table, e);
+    res.status(out.status).json({ error: out.error });
   }
 });
 
@@ -450,7 +495,8 @@ app.put('/api/:table/:id', async (req, res) => {
     res.json(r);
   } catch (e) {
     console.error('PUT error', table, e);
-    res.status(500).json({ error: 'Erro interno' });
+    const out = pgToHttpError(table, e);
+    res.status(out.status).json({ error: out.error });
   }
 });
 
@@ -468,7 +514,8 @@ app.delete('/api/:table/:id', async (req, res) => {
     res.status(204).send();
   } catch (e) {
     console.error('DELETE error', table, e);
-    res.status(500).json({ error: 'Erro interno' });
+    const out = pgToHttpError(table, e);
+    res.status(out.status).json({ error: out.error });
   }
 });
 
@@ -509,7 +556,8 @@ app.post('/rpc/update_produto_estoque', async (req, res) => {
       try { await client.query('ROLLBACK'); } catch {}
     }
     console.error('RPC update_produto_estoque error', e);
-    res.status(500).json({ error: 'Erro interno' });
+    const out = pgToHttpError('update_produto_estoque', e);
+    res.status(out.status).json({ error: out.error });
   } finally {
     if (client) client.release();
   }
