@@ -240,9 +240,17 @@ export default function Almoxarifado() {
       });
     } catch (error: unknown) {
       console.error('Erro ao adicionar produto:', error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : typeof error === 'object' && error && 'message' in error
+            ? String((error as { message?: unknown }).message)
+            : typeof error === 'object' && error && 'error' in error
+              ? String((error as { error?: unknown }).error)
+              : "Erro ao adicionar produto";
       toast({
         title: "Erro",
-        description: error instanceof Error ? error.message : "Erro ao adicionar produto",
+        description: message,
         variant: "destructive",
       });
     }
@@ -307,9 +315,17 @@ export default function Almoxarifado() {
       });
     } catch (error: unknown) {
       console.error('Erro ao registrar movimentação:', error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : typeof error === 'object' && error && 'message' in error
+            ? String((error as { message?: unknown }).message)
+            : typeof error === 'object' && error && 'error' in error
+              ? String((error as { error?: unknown }).error)
+              : "Erro ao registrar movimentação";
       toast({
         title: "Erro",
-        description: error instanceof Error ? error.message : "Erro ao registrar movimentação",
+        description: message,
         variant: "destructive",
       });
     }
@@ -340,9 +356,17 @@ export default function Almoxarifado() {
       });
     } catch (error: unknown) {
       console.error('Erro ao excluir produto:', error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : typeof error === 'object' && error && 'message' in error
+            ? String((error as { message?: unknown }).message)
+            : typeof error === 'object' && error && 'error' in error
+              ? String((error as { error?: unknown }).error)
+              : "Erro ao excluir produto";
       toast({
         title: "Erro",
-        description: error instanceof Error ? error.message : "Erro ao excluir produto",
+        description: message,
         variant: "destructive",
       });
     }

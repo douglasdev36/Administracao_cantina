@@ -161,9 +161,17 @@ const Alunos = () => {
       fetchAlunos();
     } catch (error: unknown) {
       console.error('Erro ao salvar aluno:', error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : typeof error === 'object' && error && 'message' in error
+            ? String((error as { message?: unknown }).message)
+            : typeof error === 'object' && error && 'error' in error
+              ? String((error as { error?: unknown }).error)
+              : "Erro ao salvar aluno";
       toast({
         title: "Erro",
-        description: error instanceof Error ? error.message : "Erro ao salvar aluno",
+        description: message,
         variant: "destructive",
       });
     } finally {
