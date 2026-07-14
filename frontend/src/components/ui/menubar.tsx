@@ -3,6 +3,7 @@ import * as MenubarPrimitive from "@radix-ui/react-menubar";
 import { Check, ChevronRight, Circle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { getPortalContainer } from "@/lib/portal";
 
 const MenubarMenu = MenubarPrimitive.Menu;
 
@@ -81,7 +82,7 @@ const MenubarContent = React.forwardRef<
   React.ElementRef<typeof MenubarPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Content>
 >(({ className, align = "start", alignOffset = -4, sideOffset = 8, ...props }, ref) => {
-  const container = typeof document !== "undefined" ? document.getElementById("portal-root") ?? undefined : undefined;
+  const container = getPortalContainer();
 
   return (
     <MenubarPortal container={container}>

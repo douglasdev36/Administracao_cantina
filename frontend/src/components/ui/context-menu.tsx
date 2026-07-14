@@ -3,6 +3,7 @@ import * as ContextMenuPrimitive from "@radix-ui/react-context-menu";
 import { Check, ChevronRight, Circle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { getPortalContainer } from "@/lib/portal";
 
 const ContextMenu = ContextMenuPrimitive.Root;
 
@@ -56,7 +57,7 @@ const ContextMenuContent = React.forwardRef<
   React.ElementRef<typeof ContextMenuPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Content>
 >(({ className, ...props }, ref) => {
-  const container = typeof document !== "undefined" ? document.getElementById("portal-root") ?? undefined : undefined;
+  const container = getPortalContainer();
 
   return (
     <ContextMenuPortal container={container}>

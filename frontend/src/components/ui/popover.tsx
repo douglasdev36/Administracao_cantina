@@ -2,6 +2,7 @@ import * as React from "react";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 
 import { cn } from "@/lib/utils";
+import { getPortalContainer } from "@/lib/portal";
 
 const Popover = PopoverPrimitive.Root;
 
@@ -11,7 +12,7 @@ const PopoverContent = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
 >(({ className, align = "center", sideOffset = 4, ...props }, ref) => {
-  const container = typeof document !== "undefined" ? document.getElementById("portal-root") ?? undefined : undefined;
+  const container = getPortalContainer();
 
   return (
     <PopoverPrimitive.Portal container={container}>

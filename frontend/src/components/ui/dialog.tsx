@@ -3,6 +3,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { getPortalContainer } from "@/lib/portal";
 
 const Dialog = DialogPrimitive.Root;
 
@@ -31,7 +32,7 @@ const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, ...props }, ref) => {
-  const container = typeof document !== "undefined" ? document.getElementById("portal-root") ?? undefined : undefined;
+  const container = getPortalContainer();
 
   return (
     <DialogPortal container={container}>

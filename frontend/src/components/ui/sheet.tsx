@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+import { getPortalContainer } from "@/lib/portal";
 
 const Sheet = SheetPrimitive.Root;
 
@@ -53,7 +54,7 @@ interface SheetContentProps
 
 const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Content>, SheetContentProps>(
   ({ side = "right", className, children, ...props }, ref) => {
-    const container = typeof document !== "undefined" ? document.getElementById("portal-root") ?? undefined : undefined;
+    const container = getPortalContainer();
 
     return (
       <SheetPortal container={container}>
