@@ -59,7 +59,27 @@ const pool = new Pool(
       }
 );
 
-app.use(cors({ origin: [/^http:\/\/localhost:\d+$/, /^http:\/\/127\.0\.0\.1:\d+$/, /^http:\/\/\[::1\]:\d+$/], credentials: false }));
+const extraCorsOrigins = String(process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+const allowedOriginPatterns = [
+  /^http:\/\/localhost:\d+$/,
+  /^http:\/\/127\.0\.0\.1:\d+$/,
+  /^http:\/\/\[::1\]:\d+$/,
+  /^https?:\/\/.*\.vercel\.app$/,
+];
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (extraCorsOrigins.includes(origin)) return true;
+  return allowedOriginPatterns.some((p) => p.test(origin));
+};
+app.use(cors({
+  origin: (origin, cb) => cb(null, isAllowedOrigin(origin)),
+  credentials: false,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json());
 
 process.on('unhandledRejection', (err) => {
