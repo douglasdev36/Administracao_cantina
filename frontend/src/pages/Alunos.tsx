@@ -254,12 +254,20 @@ const Alunos = () => {
     if (!confirm(`Tem certeza que deseja excluir a turma "${nome}"?`)) return;
     setLoading(true);
     try {
-      const { error } = await api
-        .from('turmas')
-        .eq('id', id)
-        .delete();
-
-      if (error) throw error;
+      const { error } = await api.rpc('delete_turma', { turma_id: id, force: false });
+      if (error) {
+        const msg = String(error.message || '');
+        if (msg.toLowerCase().includes('alunos vinculados')) {
+          const ok = confirm(
+            `A turma "${nome}" tem alunos vinculados.\n\nDeseja excluir mesmo assim? Os alunos ficarão sem turma.`
+          );
+          if (!ok) return;
+          const { error: forceError } = await api.rpc('delete_turma', { turma_id: id, force: true });
+          if (forceError) throw forceError;
+        } else {
+          throw error;
+        }
+      }
 
       if (filtroTurma === nome) setFiltroTurma("Todas");
       if (formData.turma_id === id) setFormData({ ...formData, turma_id: '' });

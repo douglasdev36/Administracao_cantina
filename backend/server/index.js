@@ -587,6 +587,47 @@ app.post('/rpc/update_produto_estoque', async (req, res) => {
   }
 });
 
+app.post('/rpc/delete_turma', async (req, res) => {
+  const role = req.user?.role;
+  if (!['admin_normal', 'super_admin'].includes(role)) {
+    return res.status(403).json({ error: 'Permissão negada' });
+  }
+  const { turma_id, force } = req.body || {};
+  if (!turma_id) return res.status(400).json({ error: 'turma_id ausente' });
+  let client;
+  try {
+    client = await pool.connect();
+    await client.query('BEGIN');
+
+    if (!force) {
+      const { rows } = await client.query(
+        `SELECT 1 FROM public.alunos WHERE turma_id = $1 LIMIT 1`,
+        [turma_id]
+      );
+      if (rows.length > 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Não é possível excluir: existem alunos vinculados a esta turma' });
+      }
+    } else {
+      await client.query(`UPDATE public.alunos SET turma_id = NULL WHERE turma_id = $1`, [turma_id]);
+    }
+
+    const { rowCount } = await client.query(`DELETE FROM public.turmas WHERE id = $1`, [turma_id]);
+    await client.query('COMMIT');
+    if (rowCount === 0) return res.status(404).json({ error: 'Turma não encontrada' });
+    return res.json({ ok: true });
+  } catch (e) {
+    if (client) {
+      try { await client.query('ROLLBACK'); } catch {}
+    }
+    console.error('RPC delete_turma error', e);
+    const out = pgToHttpError('delete_turma', e);
+    res.status(out.status).json({ error: out.error });
+  } finally {
+    if (client) client.release();
+  }
+});
+
 // ------------------------
 // Funções (aproximação de Edge Functions)
 // ------------------------
