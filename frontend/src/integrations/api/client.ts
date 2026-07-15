@@ -154,7 +154,17 @@ function createQueryBuilder(table: string) {
         const message = e?.name === 'AbortError' ? 'Timeout ao remover' : 'Falha ao conectar na API local';
         return { data: [], error: { message } };
       }
-      return { data: [], error: res.ok ? null : { message: 'Erro ao remover' } };
+      const text = await res.text().catch(() => '');
+      let body: any = null;
+      try {
+        body = text ? JSON.parse(text) : null;
+      } catch {
+        body = null;
+      }
+      const err = res.ok
+        ? null
+        : (body?.error ? { message: String(body.error) } : (body?.message ? { message: String(body.message) } : { message: text || 'Erro ao remover' }));
+      return { data: [], error: err };
     },
     maybeSingle: async () => {
       const list = await getAll();
