@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import { api } from "@/integrations/api/client";
-import { Plus, Search, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Edit, Trash2, ArrowRightLeft } from "lucide-react";
 import { toISODate } from "@/lib/date";
 
 interface Turma {
@@ -34,6 +34,13 @@ interface Aluno {
   e_bolsista?: boolean;
 }
 
+type AlunoMigracao = {
+  id: string;
+  nome: string;
+  matricula: string;
+  numero_pasta?: string | null;
+};
+
 const Alunos = () => {
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [turmas, setTurmas] = useState<Turma[]>([]);
@@ -42,6 +49,12 @@ const Alunos = () => {
   const [filtroTurma, setFiltroTurma] = useState<string>("Todas");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isTurmaDialogOpen, setIsTurmaDialogOpen] = useState(false);
+  const [migrateDialogOpen, setMigrateDialogOpen] = useState(false);
+  const [migrateFromTurma, setMigrateFromTurma] = useState<Turma | null>(null);
+  const [migrateToTurmaId, setMigrateToTurmaId] = useState<string>('');
+  const [migrateAlunos, setMigrateAlunos] = useState<AlunoMigracao[]>([]);
+  const [migrateSelectedIds, setMigrateSelectedIds] = useState<string[]>([]);
+  const [migrateLoading, setMigrateLoading] = useState(false);
   const [editingAluno, setEditingAluno] = useState<Aluno | null>(null);
   const { toast } = useToast();
   const { isSuperAdmin, isAdmin, loading: roleLoading } = useUserRole();
@@ -289,6 +302,84 @@ const Alunos = () => {
     }
   };
 
+  const openMigracaoTurma = async (turma: Turma) => {
+    setMigrateFromTurma(turma);
+    setMigrateToTurmaId('');
+    setMigrateAlunos([]);
+    setMigrateSelectedIds([]);
+    setMigrateDialogOpen(true);
+    setMigrateLoading(true);
+    try {
+      const { data, error } = await api.functions.invoke('alunos_por_turma', {
+        body: { turma_id: turma.id },
+      });
+      if (error) throw error;
+      const list = (data as { alunos?: AlunoMigracao[] } | null)?.alunos ?? [];
+      setMigrateAlunos(list);
+    } catch (error: unknown) {
+      console.error('Erro ao carregar alunos da turma:', error);
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao carregar alunos da turma",
+        variant: "destructive",
+      });
+    } finally {
+      setMigrateLoading(false);
+    }
+  };
+
+  const toggleAlunoMigracao = (id: string) => {
+    setMigrateSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const confirmarMigracao = async () => {
+    if (!migrateFromTurma) return;
+    if (!migrateToTurmaId) {
+      toast({ title: "Erro", description: "Selecione a turma de destino", variant: "destructive" });
+      return;
+    }
+    if (migrateSelectedIds.length === 0) {
+      toast({ title: "Erro", description: "Selecione pelo menos um aluno", variant: "destructive" });
+      return;
+    }
+    const destino = turmas.find((t) => t.id === migrateToTurmaId);
+    const ok = confirm(
+      `Migrar ${migrateSelectedIds.length} aluno(s) da turma "${migrateFromTurma.nome}" para "${destino?.nome || 'turma selecionada'}"?`
+    );
+    if (!ok) return;
+
+    setLoading(true);
+    try {
+      const { data, error } = await api.rpc('migrar_alunos_turma', {
+        from_turma_id: migrateFromTurma.id,
+        to_turma_id: migrateToTurmaId,
+        aluno_ids: migrateSelectedIds,
+      });
+      if (error) throw error;
+      const moved = (data as { moved?: number } | null)?.moved ?? migrateSelectedIds.length;
+      toast({
+        title: "Sucesso",
+        description: `${moved} aluno(s) migrado(s) com sucesso`,
+      });
+      setMigrateDialogOpen(false);
+      setMigrateFromTurma(null);
+      setMigrateToTurmaId('');
+      setMigrateAlunos([]);
+      setMigrateSelectedIds([]);
+      fetchAlunos();
+      fetchTurmas();
+    } catch (error: unknown) {
+      console.error('Erro ao migrar alunos:', error);
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao migrar alunos",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredAlunos = alunos.filter(aluno => {
     const matchesSearch = aluno.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
       aluno.matricula.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -368,20 +459,131 @@ const Alunos = () => {
                         turmas.map((turma) => (
                           <div key={turma.id} className="flex items-center justify-between gap-2 p-2 rounded-md hover:bg-muted">
                             <div className="text-sm">{turma.nome}</div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteTurma(turma.id, turma.nome)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openMigracaoTurma(turma)}
+                              >
+                                <ArrowRightLeft className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteTurma(turma.id, turma.nome)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         ))
                       )}
                     </div>
                   </ScrollArea>
                 </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={migrateDialogOpen} onOpenChange={(open) => {
+            setMigrateDialogOpen(open);
+            if (!open) {
+              setMigrateFromTurma(null);
+              setMigrateToTurmaId('');
+              setMigrateAlunos([]);
+              setMigrateSelectedIds([]);
+            }
+          }}>
+            <DialogContent className="w-full sm:max-w-xl max-h-[85vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Migrar Alunos</DialogTitle>
+                <DialogDescription>
+                  Selecione a turma de destino e os alunos que deseja migrar
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Turma de origem</Label>
+                  <Input value={migrateFromTurma?.nome || ''} disabled />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Turma de destino</Label>
+                  <select
+                    value={migrateToTurmaId}
+                    onChange={(e) => setMigrateToTurmaId(e.target.value)}
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Selecione...</option>
+                    {turmas
+                      .filter((t) => t.id !== migrateFromTurma?.id)
+                      .map((t) => (
+                        <option key={t.id} value={t.id}>{t.nome}</option>
+                      ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label>Alunos ({migrateSelectedIds.length}/{migrateAlunos.length})</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setMigrateSelectedIds(migrateAlunos.map((a) => a.id))}
+                      disabled={migrateLoading || migrateAlunos.length === 0}
+                    >
+                      Selecionar todos
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setMigrateSelectedIds([])}
+                      disabled={migrateLoading || migrateSelectedIds.length === 0}
+                    >
+                      Limpar
+                    </Button>
+                  </div>
+                </div>
+
+                <ScrollArea className="h-64 rounded-md border">
+                  <div className="p-2 space-y-1">
+                    {migrateLoading ? (
+                      <div className="text-sm text-muted-foreground p-2">Carregando...</div>
+                    ) : migrateAlunos.length === 0 ? (
+                      <div className="text-sm text-muted-foreground p-2">Nenhum aluno encontrado nesta turma</div>
+                    ) : (
+                      migrateAlunos.map((a) => (
+                        <label key={a.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-muted cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={migrateSelectedIds.includes(a.id)}
+                            onChange={() => toggleAlunoMigracao(a.id)}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm truncate">{a.nome}</div>
+                            <div className="text-xs text-muted-foreground truncate">
+                              {a.matricula}{a.numero_pasta ? ` • Pasta ${a.numero_pasta}` : ''}
+                            </div>
+                          </div>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+
+                <Button
+                  type="button"
+                  className="w-full"
+                  onClick={confirmarMigracao}
+                  disabled={loading || migrateLoading}
+                >
+                  Migrar selecionados
+                </Button>
               </div>
             </DialogContent>
           </Dialog>

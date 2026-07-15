@@ -108,6 +108,7 @@ async function ensureSchema() {
   await pool.query(`UPDATE public.alunos SET updated_at = now() WHERE updated_at IS NULL;`);
   await pool.query(`ALTER TABLE public.alunos ADD COLUMN IF NOT EXISTS e_bolsista BOOLEAN DEFAULT false;`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_alunos_numero_pasta ON public.alunos (numero_pasta);`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_alunos_turma_id ON public.alunos (turma_id);`);
   // Garantir colunas de compatibilidade em cardapios e liberacoes_lanche
   await pool.query(`ALTER TABLE public.cardapios ADD COLUMN IF NOT EXISTS tipo_refeicao TEXT CHECK (tipo_refeicao IN ('lanche','almoco')) DEFAULT 'lanche';`);
   await pool.query(`ALTER TABLE public.cardapios ADD COLUMN IF NOT EXISTS data_inicio DATE;`);
@@ -628,6 +629,61 @@ app.post('/rpc/delete_turma', async (req, res) => {
   }
 });
 
+app.post('/rpc/migrar_alunos_turma', async (req, res) => {
+  const role = req.user?.role;
+  if (!['admin_normal', 'super_admin'].includes(role)) {
+    return res.status(403).json({ error: 'Permissão negada' });
+  }
+  const { from_turma_id, to_turma_id, aluno_ids } = req.body || {};
+  if (!from_turma_id || !to_turma_id) return res.status(400).json({ error: 'from_turma_id e to_turma_id são obrigatórios' });
+  if (String(from_turma_id) === String(to_turma_id)) return res.status(400).json({ error: 'Turma de origem e destino devem ser diferentes' });
+  const ids = Array.isArray(aluno_ids) ? aluno_ids : [];
+  if (ids.length === 0) return res.status(400).json({ error: 'Nenhum aluno selecionado' });
+
+  let client;
+  try {
+    client = await pool.connect();
+    await client.query('BEGIN');
+
+    const turmaFrom = await client.query(`SELECT 1 FROM public.turmas WHERE id = $1`, [from_turma_id]);
+    if (turmaFrom.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Turma de origem não encontrada' });
+    }
+    const turmaTo = await client.query(`SELECT 1 FROM public.turmas WHERE id = $1`, [to_turma_id]);
+    if (turmaTo.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Turma de destino não encontrada' });
+    }
+
+    const check = await client.query(
+      `SELECT id FROM public.alunos WHERE turma_id = $1 AND id = ANY($2::uuid[])`,
+      [from_turma_id, ids]
+    );
+    if (check.rows.length !== ids.length) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Alguns alunos selecionados não pertencem à turma de origem' });
+    }
+
+    const { rowCount } = await client.query(
+      `UPDATE public.alunos SET turma_id = $1, updated_at = NOW() WHERE id = ANY($2::uuid[])`,
+      [to_turma_id, ids]
+    );
+
+    await client.query('COMMIT');
+    return res.json({ ok: true, moved: rowCount || 0 });
+  } catch (e) {
+    if (client) {
+      try { await client.query('ROLLBACK'); } catch {}
+    }
+    console.error('RPC migrar_alunos_turma error', e);
+    const out = pgToHttpError('migrar_alunos_turma', e);
+    return res.status(out.status).json({ error: out.error });
+  } finally {
+    if (client) client.release();
+  }
+});
+
 // ------------------------
 // Funções (aproximação de Edge Functions)
 // ------------------------
@@ -728,6 +784,31 @@ app.post('/functions/buscar_aluno', async (req, res) => {
   } catch (e) {
     console.error('functions buscar_aluno error', e);
     res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
+app.post('/functions/alunos_por_turma', async (req, res) => {
+  const { turma_id } = req.body || {};
+  if (!turma_id) return res.status(400).json({ error: 'turma_id ausente' });
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, nome, matricula, numero_pasta
+       FROM public.alunos
+       WHERE turma_id = $1
+       ORDER BY nome ASC`,
+      [turma_id]
+    );
+    const alunos = rows.map((r) => ({
+      id: String(r.id),
+      nome: r.nome,
+      matricula: r.matricula,
+      numero_pasta: r.numero_pasta,
+    }));
+    return res.json({ alunos });
+  } catch (e) {
+    console.error('functions alunos_por_turma error', e);
+    const out = pgToHttpError('alunos_por_turma', e);
+    return res.status(out.status).json({ error: out.error });
   }
 });
 
