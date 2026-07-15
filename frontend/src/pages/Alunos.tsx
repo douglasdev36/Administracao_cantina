@@ -122,6 +122,7 @@ const Alunos = () => {
   const fetchAlunos = useCallback(async () => {
     try {
       const { data, error } = await api
+        .from('alunos')
         .select(`
           *,
           turmas (
