@@ -74,11 +74,54 @@ const Alunos = () => {
 
   const [novaTurma, setNovaTurma] = useState('');
 
+  const normalizeTurmaNome = (s: string) => (
+    String(s || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim()
+  );
+
+  const sugerirTurmaDestinoId = (origem: Turma) => {
+    const nome = String(origem?.nome || '');
+    const candidates: string[] = [];
+
+    const yearMatch = nome.match(/\b([1-8])\s*(º|°)?\s*(ano)?\b/i);
+    if (yearMatch) {
+      const n = Number(yearMatch[1]);
+      const sym = yearMatch[2] || '';
+      const hasAno = Boolean(yearMatch[3]);
+      const replacement = `${n + 1}${sym}${hasAno ? ' ano' : ''}`;
+      candidates.push(nome.replace(yearMatch[0], replacement));
+    }
+
+    const tailMatch = nome.match(/\b([1-8])\s*$/);
+    if (tailMatch) {
+      const n = Number(tailMatch[1]);
+      candidates.push(nome.replace(tailMatch[0], String(n + 1)));
+    }
+
+    for (const cand of candidates) {
+      const candNorm = normalizeTurmaNome(cand);
+      const exact = turmas.find((t) => t.id !== origem.id && normalizeTurmaNome(t.nome) === candNorm);
+      if (exact) return exact.id;
+
+      const loose = turmas.find((t) => {
+        if (t.id === origem.id) return false;
+        const tn = normalizeTurmaNome(t.nome);
+        return tn.includes(candNorm) || candNorm.includes(tn);
+      });
+      if (loose) return loose.id;
+    }
+
+    return '';
+  };
+
 
   const fetchAlunos = useCallback(async () => {
     try {
       const { data, error } = await api
-        .from('alunos')
         .select(`
           *,
           turmas (
@@ -304,7 +347,7 @@ const Alunos = () => {
 
   const openMigracaoTurma = async (turma: Turma) => {
     setMigrateFromTurma(turma);
-    setMigrateToTurmaId('');
+    setMigrateToTurmaId(sugerirTurmaDestinoId(turma));
     setMigrateAlunos([]);
     setMigrateSelectedIds([]);
     setMigrateDialogOpen(true);
